@@ -23,6 +23,7 @@ export class LengthOracle{
  async init(){this.key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
  async observe(guess:string,mode:Mode):Promise<Observation>{
    if(!this.key)throw new Error('Initialize AES-GCM first');
+   if(mode!=='together' && mode!=='separated' && mode!=='none')throw new Error('Unsupported compression configuration');
    const text=payload(guess);
    const raw=te.encode(text);
    let prepared:Uint8Array;

@@ -24,6 +24,10 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Unit and cryptographic KATs
         run: npm test
+      - name: Stamp deployed artifact with the precise source revision
+        run: |
+          mkdir -p public
+          printf '{"source_sha":"%s","repository":"%s"}\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" > public/deployment.json
       - name: Type-check and production build
         run: npm run build
       - run: npx playwright install --with-deps chromium
@@ -45,6 +49,23 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+      - name: Verify served Pages bytes match the commit built and deployed
+        env:
+          LIVE_URL: https://systemslibrarian.github.io/crypto-lab-compression-leak/
+        run: |
+          set -eu
+          for attempt in $(seq 1 18); do
+            result=$(curl -fsSL --connect-timeout 8 --max-time 15 -H 'Cache-Control: no-cache' "${LIVE_URL}deployment.json?sha=${GITHUB_SHA}" 2>/dev/null || true)
+            if node -e 'try { const p=JSON.parse(process.argv[1]);process.exit(p.source_sha===process.argv[2]&&p.repository===process.argv[3]?0:1) } catch { process.exit(1) }' "$result" "$GITHUB_SHA" "$GITHUB_REPOSITORY"; then
+              html=$(curl -fsSL --connect-timeout 8 --max-time 15 -H 'Cache-Control: no-cache' "${LIVE_URL}?sha=${GITHUB_SHA}")
+              printf '%s' "$html" | grep -Fq 'id="app"'
+              echo "Verified live HTML and source revision $GITHUB_SHA at $LIVE_URL"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Live Pages failed source-SHA/HTML verification; do not add catalog card"
+          exit 1
 
   # Dependabot uses the identical cryptographic, browser and accessibility gate as deploy.
   dependabot-auto-merge:
