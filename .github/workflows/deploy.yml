@@ -22,6 +22,13 @@ jobs:
         with: { node-version: 24 }
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      # PR-only receipt used to pin the exact public npm resolution.
+      - name: Dependency lock receipt
+        if: github.event_name == 'pull_request'
+        run: |
+          echo LOCKFILE_BEGIN_20261017
+          cat package-lock.json
+          echo LOCKFILE_END_20261017
       - name: Unit and cryptographic KATs
         run: npm test
       - name: Type-check and production build
