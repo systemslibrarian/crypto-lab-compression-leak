@@ -12,9 +12,9 @@ export function payload(guess:string){
 }
 export async function gzip(input:Uint8Array):Promise<Uint8Array>{
  if(typeof CompressionStream==='undefined')throw new Error('This browser lacks the built-in gzip compressor');
- const stream=new CompressionStream('gzip');const writer=stream.writable.getWriter();
- await writer.write(new Uint8Array(input));await writer.close();
- return new Uint8Array(await new Response(stream.readable).arrayBuffer());
+ const source=new Blob([new Uint8Array(input)]).stream();
+ const compressed=source.pipeThrough(new CompressionStream('gzip'));
+ return new Uint8Array(await new Response(compressed).arrayBuffer());
 }
 function equals(a:Uint8Array,b:Uint8Array){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
 export class LengthOracle{
