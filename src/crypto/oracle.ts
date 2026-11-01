@@ -17,6 +17,12 @@ export async function gzip(input:Uint8Array):Promise<Uint8Array>{
  return new Uint8Array(await new Response(compressed).arrayBuffer());
 }
 function equals(a:Uint8Array,b:Uint8Array){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
+export async function aesGcmEncrypt(key:CryptoKey,iv:Uint8Array,plaintext:Uint8Array):Promise<Uint8Array>{
+ return new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv:new Uint8Array(iv),tagLength:128},key,new Uint8Array(plaintext)));
+}
+export async function aesGcmDecrypt(key:CryptoKey,iv:Uint8Array,ciphertext:Uint8Array):Promise<Uint8Array>{
+ return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(iv),tagLength:128},key,new Uint8Array(ciphertext)));
+}
 export class LengthOracle{
  key?:CryptoKey;
  seenIV=new Set<string>();
@@ -37,8 +43,8 @@ export class LengthOracle{
       prepared=new Uint8Array(priv.length+pub.length);prepared.set(priv);prepared.set(pub,priv.length);
    }
    const iv=crypto.getRandomValues(new Uint8Array(12));const mark=hex(iv);if(this.seenIV.has(mark))throw new Error('Repeated IV: abort');this.seenIV.add(mark);
-   const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv,tagLength:128},this.key,new Uint8Array(prepared)));
-   const recovered=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv,tagLength:128},this.key,new Uint8Array(ct)));
+   const ct=await aesGcmEncrypt(this.key,iv,prepared);
+   const recovered=await aesGcmDecrypt(this.key,iv,ct);
    return {guess,mode,plaintextBytes:raw.length,compressedBytes:prepared.length,ciphertextBytes:ct.length,verified:equals(recovered,prepared),ivPrefix:mark.slice(0,12)};
  }
  async compare(mode:Mode='together'){const results:Observation[]=[];for(const candidate of OPTIONS)results.push(await this.observe(candidate,mode));return results;}
