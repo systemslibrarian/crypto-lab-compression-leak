@@ -42,7 +42,7 @@ Install with `npm ci`, run `npm test`, `npm run build`, and `npm run test:a11y` 
 
 ## Build & Verify
 
-The suite checks real gzip bytes, an official NIST AES-256-GCM known-answer tag for SP 800-38D, ciphertext size including the 16-byte tag, genuine decrypt-and-authenticate, secret-dependent size measurements, defenses in this fixture, malformed guesses and unsupported modes. Browser tests exercise the rendered leak and mitigations.
+The suite checks real gzip bytes, two official NIST AES-256-GCM known-answer cases for SP 800-38D -- Example #1's tag over an empty plaintext, and Example #2's ciphertext and tag asserted separately over 64 bytes, ciphertext size including the 16-byte tag, genuine decrypt-and-authenticate, secret-dependent size measurements, defenses in this fixture, malformed guesses and unsupported modes. Browser tests exercise the rendered leak and mitigations.
 
 CI runs Vitest and Playwright, checks the production build, and refuses deployment on failures. After the Pages publish step, a fresh HTTP GET must return `deployment.json` identifying the exact `GITHUB_SHA` and GitHub repository, and a second GET must return HTML containing the app mount. The hosted source SHA is **deployed build identity evidence**, not a cryptographic security proof. Full negative-claim and mutation-test compliance remains subject to independent review.
 

@@ -23,6 +23,14 @@ export async function aesGcmEncrypt(key:CryptoKey,iv:Uint8Array,plaintext:Uint8A
 export async function aesGcmDecrypt(key:CryptoKey,iv:Uint8Array,ciphertext:Uint8Array):Promise<Uint8Array>{
  return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(iv),tagLength:128},key,new Uint8Array(ciphertext)));
 }
+/** AES-GCM output is ciphertext||tag. This is the boundary the oracle's size
+ * claim rests on -- "ciphertext size including the 16-byte tag" -- so it is
+ * named here rather than left as an arithmetic coincidence at each use. */
+export const GCM_TAG_BYTES=16;
+export function splitGcmOutput(output:Uint8Array):{ciphertext:Uint8Array;tag:Uint8Array}{
+ if(output.length<GCM_TAG_BYTES)throw new Error('AES-GCM output is shorter than its 128-bit tag');
+ return {ciphertext:output.subarray(0,output.length-GCM_TAG_BYTES),tag:output.subarray(output.length-GCM_TAG_BYTES)};
+}
 export class LengthOracle{
  key?:CryptoKey;
  seenIV=new Set<string>();
@@ -45,7 +53,8 @@ export class LengthOracle{
    const iv=crypto.getRandomValues(new Uint8Array(12));const mark=hex(iv);if(this.seenIV.has(mark))throw new Error('Repeated IV: abort');this.seenIV.add(mark);
    const ct=await aesGcmEncrypt(this.key,iv,prepared);
    const recovered=await aesGcmDecrypt(this.key,iv,ct);
-   return {guess,mode,plaintextBytes:raw.length,compressedBytes:prepared.length,ciphertextBytes:ct.length,verified:equals(recovered,prepared),ivPrefix:mark.slice(0,12)};
+   const {ciphertext,tag}=splitGcmOutput(ct);
+   return {guess,mode,plaintextBytes:raw.length,compressedBytes:prepared.length,ciphertextBytes:ciphertext.length+tag.length,verified:equals(recovered,prepared),ivPrefix:mark.slice(0,12)};
  }
  async compare(mode:Mode='together'){const results:Observation[]=[];for(const candidate of OPTIONS)results.push(await this.observe(candidate,mode));return results;}
 }
