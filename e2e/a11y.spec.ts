@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import {auditControlNames,formatControlNameFailures} from './control-names';
 test('real interactive states pass axe WCAG A/AA and keyboard access at two widths',async({page})=>{
   for(const width of [1280,390]){
     await page.setViewportSize({width,height:850});
@@ -11,6 +12,7 @@ test('real interactive states pass axe WCAG A/AA and keyboard access at two widt
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
     const audit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
     expect(audit.violations).toEqual([]);
+    expect(formatControlNameFailures(await auditControlNames(page)),'form controls named only by placeholder/title').toEqual([]);
     await page.keyboard.press('Tab');
     expect(await page.evaluate(()=>document.activeElement?.tagName==='A'||document.activeElement?.tagName==='BUTTON')).toBe(true);
   }
@@ -24,4 +26,5 @@ test('real completed lesson state passes the accessibility gate at mobile width'
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  const findings=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
  expect(findings.violations).toEqual([]);
+ expect(formatControlNameFailures(await auditControlNames(page)),'form controls named only by placeholder/title').toEqual([]);
 });
