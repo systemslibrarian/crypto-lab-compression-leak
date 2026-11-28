@@ -12,7 +12,7 @@
     "test:local": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test src/*.test.ts src/crypto/*.test.ts"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
+    "@axe-core/playwright": "^4.14.1",
     "@playwright/test": "^1.65.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
